@@ -6,8 +6,17 @@ using PixMetron.Controls.ImageViewport.Contracts.Abstractions;
 
 namespace PixMetron.Controls.ImageViewport.Runtime.Display
 {
+    /// <summary>
+    /// Observes DPI changes for a visual element and updates the viewport service accordingly.
+    /// </summary>
     internal static class DpiObserver
     {
+        /// <summary>
+        /// Attaches DPI monitoring to a visual element.
+        /// </summary>
+        /// <param name="visual">The visual element to monitor.</param>
+        /// <param name="service">The viewport service to update when DPI changes.</param>
+        /// <returns>A disposable subscription, or null if DPI monitoring is not available.</returns>
         public static IDisposable? Attach(Visual visual, IViewportService service)
         {
             if (visual == null) return null;
@@ -52,6 +61,9 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Display
             return null;
         }
 
+        /// <summary>
+        /// Represents a subscription to DPI change events.
+        /// </summary>
         sealed class DpiSubscription : IDisposable
         {
             readonly HwndSource _source;
@@ -59,6 +71,12 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Display
             readonly HwndDpiChangedEventHandler _handler;
             bool _disposed;
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="DpiSubscription"/> class.
+            /// </summary>
+            /// <param name="source">The HWND source.</param>
+            /// <param name="evt">The event information.</param>
+            /// <param name="handler">The event handler.</param>
             public DpiSubscription(HwndSource source, System.Reflection.EventInfo evt, HwndDpiChangedEventHandler handler)
             {
                 _source = source;
@@ -66,6 +84,9 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Display
                 _handler = handler;
             }
 
+            /// <summary>
+            /// Disposes the subscription and removes the event handler.
+            /// </summary>
             public void Dispose()
             {
                 if (_disposed) return;
@@ -76,7 +97,7 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Display
                     _event.RemoveEventHandler(_source, _handler);
                 } catch
                 {
-                    // 已释放的对象，忽略
+                    // Already disposed object, ignore
                 }
             }
         }

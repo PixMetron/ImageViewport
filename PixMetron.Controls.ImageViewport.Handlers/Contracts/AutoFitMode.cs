@@ -1,17 +1,33 @@
 namespace PixMetron.Controls.ImageViewport.Handlers.Contracts
 {
     /// <summary>
-    /// ﾗﾔｶｯﾊﾊﾅ萋｣ﾊｽ｡｣
+    /// Specifies the automatic fitting mode for viewport content adaptation.
     /// </summary>
+    /// <remarks>
+    /// This enumeration defines how the viewport should automatically adjust its content
+    /// when the window size changes, providing different strategies for maintaining
+    /// optimal view of the content.
+    /// </remarks>
     public enum AutoFitMode
     {
-        /// <summary>ｽ﨧ﾃﾗﾔｶｯﾊﾊﾅ茖｣</summary>
+        /// <summary>
+        /// Automatic fitting is disabled. The viewport will not automatically adjust to window size changes.
+        /// </summary>
         Disabled,
-        /// <summary>ﾊｼﾖﾕｱ｣ｳﾖﾊﾊﾅ茖｣</summary>
+
+        /// <summary>
+        /// Always maintain automatic fitting. The content will continuously adapt to any window size changes.
+        /// </summary>
         Always,
-        /// <summary>ｽﾚｴｰｿﾚｱ莇ｱﾊﾊﾅ茖｣</summary>
+
+        /// <summary>
+        /// Fit only when the window grows larger. The content will adapt when the window expands.
+        /// </summary>
         OnWindowGrow,
-        /// <summary>ｽﾚｴｰｿﾚｱ菻｡ﾊｱﾊﾊﾅ茖｣</summary>
+
+        /// <summary>
+        /// Fit only when the window shrinks smaller. The content will adapt when the window contracts.
+        /// </summary>
         OnWindowShrink
     }
 }

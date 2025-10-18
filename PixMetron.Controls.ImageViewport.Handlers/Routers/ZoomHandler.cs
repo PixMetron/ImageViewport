@@ -6,44 +6,125 @@ using PixMetron.Controls.ImageViewport.Contracts.Input;
 namespace PixMetron.Controls.ImageViewport.Handlers.Routers
 {
     /// <summary>
-    /// 纯滚轮缩放处理器。
-    /// 支持不同的缩放锚点模式和缩放范围限制。
+    /// A pure mouse wheel zoom handler that supports different pivot modes and scale range constraints.
     /// </summary>
+    /// <remarks>
+    /// This handler processes mouse wheel events to zoom the viewport in or out.
+    /// It supports both static configuration via properties and dynamic configuration via function providers.
+    /// The handler tracks mouse position for pivot point calculations and can operate in either
+    /// window coordinate or image coordinate mode.
+    /// </remarks>
     public class ZoomHandler : IWheelHandler, IMoveHandler
     {
-        // 静态属性(当对应的 Provider 为 null 时使用)
+        /// <summary>
+        /// Gets or sets the scale factor applied per wheel notch.
+        /// </summary>
+        /// <value>The multiplicative scale factor. Default is 1.1. Used when <see cref="ScaleFactorProvider"/> is null.</value>
         public double ScaleFactor { get; set; } = 1.1;
+
+        /// <summary>
+        /// Gets or sets the minimum allowed scale value.
+        /// </summary>
+        /// <value>The minimum scale limit. Default is 0.01. Used when <see cref="MinScaleProvider"/> is null.</value>
         public double MinScale { get; set; } = 0.01;
+
+        /// <summary>
+        /// Gets or sets the maximum allowed scale value.
+        /// </summary>
+        /// <value>The maximum scale limit. Default is 100.0. Used when <see cref="MaxScaleProvider"/> is null.</value>
         public double MaxScale { get; set; } = 100.0;
+
+        /// <summary>
+        /// Gets or sets the pivot mode determining the zoom center point.
+        /// </summary>
+        /// <value>The <see cref="ZoomPivotMode"/> to use. Default is <see cref="ZoomPivotMode.Mouse"/>. Used when <see cref="PivotModeProvider"/> is null.</value>
         public ZoomPivotMode PivotMode { get; set; } = ZoomPivotMode.Mouse;
+
+        /// <summary>
+        /// Gets or sets the custom pivot point in window coordinates.
+        /// </summary>
+        /// <value>The custom pivot position. Used when <see cref="PivotMode"/> is <see cref="ZoomPivotMode.Custom"/> and <see cref="CustomPivotProvider"/> is null.</value>
         public PxPoint CustomPivot { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether to use image coordinate-based zooming.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to zoom using image coordinates (ignores pivot mode); 
+        /// <c>false</c> to use window coordinates with pivot mode selection. 
+        /// Default is <c>true</c>. Used when <see cref="UseImageCoordinateProvider"/> is null.
+        /// </value>
         public bool UseImageCoordinate { get; set; } = true;
 
-        // 动态配置委托(优先级高于静态属性)
+        /// <summary>
+        /// Gets or sets a function that dynamically provides the scale factor.
+        /// </summary>
+        /// <value>A function returning the scale factor, or null to use <see cref="ScaleFactor"/>.</value>
         public Func<double>? ScaleFactorProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that dynamically provides the minimum scale limit.
+        /// </summary>
+        /// <value>A function returning the minimum scale, or null to use <see cref="MinScale"/>.</value>
         public Func<double>? MinScaleProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that dynamically provides the maximum scale limit.
+        /// </summary>
+        /// <value>A function returning the maximum scale, or null to use <see cref="MaxScale"/>.</value>
         public Func<double>? MaxScaleProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that dynamically provides the pivot mode.
+        /// </summary>
+        /// <value>A function returning the <see cref="ZoomPivotMode"/>, or null to use <see cref="PivotMode"/>.</value>
         public Func<ZoomPivotMode>? PivotModeProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that dynamically provides the custom pivot point.
+        /// </summary>
+        /// <value>A function returning the custom pivot position, or null to use <see cref="CustomPivot"/>.</value>
         public Func<PxPoint>? CustomPivotProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that dynamically determines whether to use image coordinate-based zooming.
+        /// </summary>
+        /// <value>A function returning a boolean, or null to use <see cref="UseImageCoordinate"/>.</value>
         public Func<bool>? UseImageCoordinateProvider { get; set; }
 
         private PxPoint _lastMousePosWindow;
         private PxPoint _lastMousePosImage;
 
+        /// <summary>
+        /// Handles mouse wheel events to perform zoom operations.
+        /// </summary>
+        /// <param name="sender">The event sender, expected to be an <see cref="ImageViewport"/> instance.</param>
+        /// <param name="p">The pointer event containing wheel delta and position information.</param>
+        /// <returns><c>true</c> if the event was handled; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// <para>The zoom process:</para>
+        /// <list type="number">
+        /// <item>Retrieves configuration from providers or falls back to static properties.</item>
+        /// <item>Calculates the scale factor based on wheel delta direction.</item>
+        /// <item>Applies min/max scale constraints to the desired scale value.</item>
+        /// <item>If the change is negligible, returns false without modifying the viewport.</item>
+        /// <item>Performs the zoom using either image coordinates or window coordinates based on <see cref="UseImageCoordinate"/>.</item>
+        /// </list>
+        /// </remarks>
         public virtual bool OnWheel(object sender, PointerEvent p)
         {
             if (sender is not ImageViewport vp) return false;
 
-            // 动态获取配置
+            // Retrieve dynamic configuration
             var scaleFactor = ScaleFactorProvider?.Invoke() ?? ScaleFactor;
             var minScale = MinScaleProvider?.Invoke() ?? MinScale;
             var maxScale = MaxScaleProvider?.Invoke() ?? MaxScale;
             var useImageCoordinate = UseImageCoordinateProvider?.Invoke() ?? UseImageCoordinate;
 
-            // 计算缩放因子
+            // Calculate zoom factor
             double factor = p.WheelDelta > 0 ? scaleFactor : 1.0 / scaleFactor;
 
-            // 获取当前缩放并应用范围限制
+            // Get current scale and apply range limits
             var current = vp.Scale <= 0 ? 1.0 : vp.Scale;
             var desired = current * factor;
 
@@ -52,9 +133,9 @@ namespace PixMetron.Controls.ImageViewport.Handlers.Routers
             desired = Math.Max(minS, Math.Min(maxS, desired));
 
             var actualFactor = desired / current;
-            if (Math.Abs(actualFactor - 1.0) < 1e-9) return false; // 无变化
+            if (Math.Abs(actualFactor - 1.0) < 1e-9) return false; // No change
 
-            // 根据模式选择使用窗口坐标或图像坐标
+            // Choose between window or image coordinate based zooming
             if (useImageCoordinate)
             {
                 vp.ZoomAtImagePx(actualFactor, _lastMousePosImage);
@@ -79,12 +160,22 @@ namespace PixMetron.Controls.ImageViewport.Handlers.Routers
             return true;
         }
 
+        /// <summary>
+        /// Handles mouse move events to track cursor position.
+        /// </summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="p">The pointer event containing position information.</param>
+        /// <returns>Always returns <c>false</c> to allow the event to propagate.</returns>
+        /// <remarks>
+        /// This method updates internal position tracking fields for both window and image coordinates,
+        /// which are used as potential pivot points during zoom operations. The move event itself is not intercepted.
+        /// </remarks>
         public virtual bool OnMove(object sender, PointerEvent p)
         {
-            // 追踪鼠标位置
+            // Track mouse position
             _lastMousePosWindow = p.WindowPx;
             _lastMousePosImage = p.ImagePx;
-            return false; // 不拦截移动事件
+            return false; // Do not intercept move events
         }
     }
 }

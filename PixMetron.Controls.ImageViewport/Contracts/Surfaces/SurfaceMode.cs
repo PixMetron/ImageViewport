@@ -1,8 +1,18 @@
 namespace PixMetron.Controls.ImageViewport.Contracts.Surfaces
 {
+    /// <summary>
+    /// Specifies the rendering mode for a surface.
+    /// </summary>
     public enum SurfaceMode
     {
-        Follow,      // 由控件统一 Push(ViewportMatrix)，用"图像像素"绘制
-        Independent  // 控件不做矩阵操作，Surface 自己处理（窗口坐标/自推矩阵）
+        /// <summary>
+        /// The control uniformly pushes the viewport matrix. Drawing is performed using image pixel coordinates.
+        /// </summary>
+        Follow,
+
+        /// <summary>
+        /// The control does not perform matrix operations. The surface handles transformations independently (using window coordinates or custom matrix operations).
+        /// </summary>
+        Independent
     }
 }

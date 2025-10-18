@@ -6,16 +6,30 @@ using PixMetron.Controls.ImageViewport.Contracts.Surfaces;
 
 namespace PixMetron.Controls.ImageViewport
 {
+    /// <summary>
+    /// A framework element that hosts and renders layered surfaces from a viewport facade.
+    /// Manages transform state and render order for both follow-viewport and independent surfaces.
+    /// </summary>
     public sealed class LayeredSurfaceHost : FrameworkElement
     {
         private IViewportFacade? _facade;
 
+        /// <summary>
+        /// Binds the host to a viewport facade and triggers a visual update.
+        /// </summary>
+        /// <param name="facade">The facade providing surfaces and viewport state.</param>
         public void Bind(IViewportFacade facade)
         {
             _facade = facade;
             InvalidateVisual();
         }
 
+        /// <summary>
+        /// Renders all surfaces from the bound facade. Surfaces with <see cref="SurfaceMode.Follow"/> 
+        /// are rendered with the viewport transform applied, while <see cref="SurfaceMode.Independent"/> 
+        /// surfaces render in window coordinates.
+        /// </summary>
+        /// <param name="dc">The drawing context to render into.</param>
         protected override void OnRender(DrawingContext dc)
         {
             base.OnRender(dc);
@@ -24,11 +38,11 @@ namespace PixMetron.Controls.ImageViewport
 
             var winRect = new Rect(RenderSize);
 
-            // 一帧只取一次，保持一致
+            // Get viewport state once per frame for consistency
             var view = _facade.Service.Current;
             var transforms = _facade.GetTransforms(in view);
 
-            // 视口矩阵（image -> window） & 逆矩阵
+            // Viewport matrix (image -> window) & inverse matrix
             var s = view.Scale;
             var tl = view.ViewportRectInImage.TopLeft;
             var M = new Matrix(s, 0, 0, s, -tl.X * s, -tl.Y * s);
@@ -53,12 +67,19 @@ namespace PixMetron.Controls.ImageViewport
             if (pushed) dc.Pop();
         }
 
+        /// <summary>
+        /// Invalidates the visual to trigger a re-render on the next render pass.
+        /// </summary>
         public void Invalidate() => InvalidateVisual();
 
+        /// <summary>
+        /// Handles render size changes by forcing a visual update.
+        /// </summary>
+        /// <param name="sizeInfo">Information about the size change.</param>
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
-            InvalidateVisual();                 // 主机自身尺寸变化强制重绘
+            InvalidateVisual();                 // Force redraw when host size changes
         }
     }
 }

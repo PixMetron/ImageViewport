@@ -2,6 +2,9 @@ using PixMetron.Controls.ImageViewport.Contracts.Abstractions;
 
 namespace PixMetron.Controls.ImageViewport.Runtime.Services
 {
+    /// <summary>
+    /// Built-in implementation of the viewport service that manages viewport state, transformations, and notifications.
+    /// </summary>
     public sealed class BuiltInViewportService : IViewportService, IViewportObservable
     {
         PxSize _window = new(0, 0);
@@ -11,10 +14,20 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
         ulong _version;
         ViewportInfo? _current;
 
+        /// <summary>
+        /// Occurs when the viewport state changes.
+        /// </summary>
         public event EventHandler<ViewportInfo>? ViewportChanged;
 
+        /// <summary>
+        /// Gets the current viewport information. Returns a cached instance for the current version.
+        /// </summary>
         public ViewportInfo Current => _current ?? Snapshot();
 
+        /// <summary>
+        /// Creates a snapshot of the current viewport state.
+        /// </summary>
+        /// <returns>A new <see cref="ViewportInfo"/> instance representing the current state.</returns>
         public ViewportInfo Snapshot() => new()
         {
             Version = _version,
@@ -25,6 +38,11 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             DpiScaleY = _dpiY
         };
 
+        /// <summary>
+        /// Zooms the viewport at the specified window pixel position.
+        /// </summary>
+        /// <param name="factor">The zoom factor to apply.</param>
+        /// <param name="win">The pivot point in window pixel coordinates.</param>
         public void ZoomAtWindowPx(double factor, PxPoint win)
         {
             if (factor <= 0) return;
@@ -41,6 +59,11 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             Raise();
         }
 
+        /// <summary>
+        /// Pans the viewport by the specified offset in window pixels.
+        /// </summary>
+        /// <param name="dx">The horizontal offset in window pixels.</param>
+        /// <param name="dy">The vertical offset in window pixels.</param>
         public void PanWindowPx(double dx, double dy)
         {
             if (dx == 0 && dy == 0) return;
@@ -52,26 +75,30 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             Raise();
         }
 
+        /// <summary>
+        /// Fits the specified image rectangle to the viewport by adjusting scale and position.
+        /// </summary>
+        /// <param name="img">The image rectangle to fit.</param>
         public void FitImageRect(PxRect img)
         {
-            // 确保窗口和图像尺寸有效，防止除零
+            // Ensure window and image dimensions are valid to prevent division by zero
             if (_window.Width <= 0 || _window.Height <= 0 || img.Width <= 0 || img.Height <= 0)
             {
                 return;
             }
 
-            // 1. 计算水平和垂直方向的缩放比例
+            // 1. Calculate scale factors for horizontal and vertical directions
             var scaleX = _window.Width / img.Width;
             var scaleY = _window.Height / img.Height;
 
-            // 2. 取较小的比例以确保整个图像都能被容纳
+            // 2. Use the smaller scale to ensure the entire image fits
             _scale = Math.Min(scaleX, scaleY);
 
-            // 3. 基于新比例计算视口在图像坐标系下的新尺寸
+            // 3. Calculate the new viewport dimensions in image coordinates based on the new scale
             var newViewWidth = _window.Width / _scale;
             var newViewHeight = _window.Height / _scale;
 
-            // 4. 计算左上角坐标，使图像居中
+            // 4. Calculate top-left coordinates to center the image
             var newX = img.X + (img.Width - newViewWidth) / 2.0;
             var newY = img.Y + (img.Height - newViewHeight) / 2.0;
 
@@ -79,16 +106,20 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             Raise();
         }
 
+        /// <summary>
+        /// Sets the window size and adjusts the viewport to maintain the center point.
+        /// </summary>
+        /// <param name="size">The new window size in pixels.</param>
         public void SetWindowSize(PxSize size)
         {
-            // 边界检查
+            // Boundary check
             if (size.Width <= 0 || size.Height <= 0)
             {
                 _window = size;
                 return;
             }
 
-            // 如果是初始化状态,直接设置
+            // If in initialization state, set directly
             if (_window.Width <= 0 || _window.Height <= 0)
             {
                 _window = size;
@@ -101,18 +132,18 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
                 return;
             }
 
-            // 1. 计算窗口中心在图像坐标系中的位置(变化前)
+            // 1. Calculate the center position in image coordinates (before change)
             var centerImageX = _imageView.X + _imageView.Width / 2.0;
             var centerImageY = _imageView.Y + _imageView.Height / 2.0;
 
-            // 2. 更新窗口尺寸
+            // 2. Update window size
             _window = size;
 
-            // 3. 计算新的视口尺寸(保持缩放比例不变)
+            // 3. Calculate new viewport dimensions (keeping scale unchanged)
             var newViewWidth = size.Width / _scale;
             var newViewHeight = size.Height / _scale;
 
-            // 4. 调整视口位置,使中心点保持不变
+            // 4. Adjust viewport position to maintain the center point
             _imageView = new PxRect(
                 centerImageX - newViewWidth / 2.0,
                 centerImageY - newViewHeight / 2.0,
@@ -122,6 +153,11 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             Raise();
         }
 
+        /// <summary>
+        /// Sets the DPI scale factors for the viewport.
+        /// </summary>
+        /// <param name="x">The horizontal DPI scale factor.</param>
+        /// <param name="y">The vertical DPI scale factor.</param>
         public void SetDpi(double x, double y)
         {
             _dpiX = x;
@@ -129,17 +165,23 @@ namespace PixMetron.Controls.ImageViewport.Runtime.Services
             Raise();
         }
 
+        /// <summary>
+        /// Rebuilds and caches the current viewport information.
+        /// </summary>
         void RebuildCurrent()
         {
             _current = Snapshot();
         }
 
+        /// <summary>
+        /// Raises the viewport changed event after incrementing the version and rebuilding the cache.
+        /// </summary>
         private void Raise()
         {
-            // 所有可见变化统一 ++Version
+            // All visible changes increment the version
             _version++;
 
-            // 先重建并缓存
+            // Rebuild and cache first
             RebuildCurrent();
 
             ViewportChanged?.Invoke(this, _current!);

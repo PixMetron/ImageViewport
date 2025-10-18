@@ -4,9 +4,35 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyName>PixMetron.Controls.ImageViewport.Handlers</AssemblyName>
     <RootNamespace>PixMetron.Controls.ImageViewport.Handlers</RootNamespace>
+
+	  <!-- NuGet 基本信息 -->
+	  <PackageId>PixMetron.Controls.ImageViewport.Handlers</PackageId>
+	  <!-- 用 SemVer，预发布如 1.1.0-beta.1 -->
+	  <Version>0.1.0-beta.0</Version>
+	  <Authors>PixMetron</Authors>
+	  <Description>Input handlers for ImageViewport providing configurable pan/zoom interactions with multi-button support, mouse wheel control, auto-fit modes, and extensible handler interfaces.</Description>
+	  <PackageTags>WPF;Viewport;Imaging</PackageTags>
+
+	  <!-- 可见性与合规 -->
+	  <PackageProjectUrl>https://github.com/PixMetron</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/PixMetron/ImageViewport</RepositoryUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+
+	  <!-- README / 图标（会显示在 nuget.org 包页） -->
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <!--<PackageIcon>docs\icon.png</PackageIcon>-->
+
+	  <!-- 文档与 SourceLink（推荐） -->
+	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
+	<ItemGroup>
+		<None Include="docs\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\\PixMetron.Controls.ImageViewport\\PixMetron.Controls.ImageViewport.csproj" />
   </ItemGroup>

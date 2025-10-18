@@ -5,45 +5,83 @@ using PixMetron.Controls.ImageViewport.Handlers.Contracts;
 namespace PixMetron.Controls.ImageViewport.Handlers.Routers
 {
     /// <summary>
-    /// 自动适配处理器(仅负责状态管理和策略判断)。
+    /// An automatic fitting handler responsible for state management and strategy evaluation.
     /// </summary>
+    /// <remarks>
+    /// This handler monitors window size changes and determines when the viewport should
+    /// automatically refit its content based on the configured <see cref="Mode"/>.
+    /// It maintains a cached rectangle representing the target fit area and tracks
+    /// window size history to evaluate fitting conditions.
+    /// </remarks>
     public sealed class AutoFitHandler : IWindowSizeHandler
     {
         /// <summary>
-        /// 自动适配模式。
+        /// Gets or sets the automatic fitting mode that determines when refitting occurs.
         /// </summary>
+        /// <value>
+        /// An <see cref="AutoFitMode"/> value specifying the fitting strategy.
+        /// Default is <see cref="AutoFitMode.Disabled"/>.
+        /// </value>
         public AutoFitMode Mode { get; set; } = AutoFitMode.Disabled;
 
         private PxRect? _cachedRect;
         private PxSize _lastWindowSize;
 
         /// <summary>
-        /// 设置要适配的图像矩形(仅缓存)。
+        /// Sets the image rectangle to be fitted (cached only).
         /// </summary>
+        /// <param name="rect">The rectangle in image coordinates that should be fitted to the viewport.</param>
+        /// <remarks>
+        /// This method stores the target rectangle for future fitting operations but does not
+        /// trigger an immediate fit. The actual fitting occurs during window size change events
+        /// based on the configured <see cref="Mode"/>.
+        /// </remarks>
         public void SetCachedRect(PxRect rect)
         {
             _cachedRect = rect;
         }
 
         /// <summary>
-        /// 获取当前缓存的适配矩形。
+        /// Gets the currently cached fitting rectangle.
         /// </summary>
+        /// <returns>
+        /// The cached <see cref="PxRect"/> if available; otherwise, <c>null</c>.
+        /// </returns>
         public PxRect? GetCachedRect() => _cachedRect;
 
         /// <summary>
-        /// 清除缓存的矩形。
+        /// Clears the cached rectangle.
         /// </summary>
+        /// <remarks>
+        /// After calling this method, no automatic fitting will occur until a new rectangle
+        /// is set via <see cref="SetCachedRect"/>, even if the <see cref="Mode"/> is enabled.
+        /// </remarks>
         public void ClearCache()
         {
             _cachedRect = null;
         }
 
         /// <summary>
-        /// 窗口尺寸变化时的处理(IWindowSizeHandler 实现)。
+        /// Handles window size change events (implementation of <see cref="IWindowSizeHandler"/>).
         /// </summary>
-        /// <param name="sender">发送者(通常是 ImageViewport 控件)。</param>
-        /// <param name="newSize">新的窗口尺寸。</param>
-        /// <returns>是否处理了该事件。</returns>
+        /// <param name="sender">The event sender (typically the <see cref="ImageViewport"/> control).</param>
+        /// <param name="newSize">The new window size in pixels.</param>
+        /// <returns>
+        /// <c>true</c> if the event was handled and fitting should occur; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// This method evaluates whether refitting should occur based on:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>The presence of a cached rectangle.</item>
+        /// <item>The current <see cref="Mode"/> setting.</item>
+        /// <item>The relationship between the new and previous window sizes.</item>
+        /// </list>
+        /// <para>
+        /// The previous window size is always updated to the new size after evaluation.
+        /// </para>
+        /// </remarks>
         public bool OnWindowSizeChanged(object sender, PxSize newSize)
         {
             if (!_cachedRect.HasValue || Mode == AutoFitMode.Disabled)
@@ -64,16 +102,25 @@ namespace PixMetron.Controls.ImageViewport.Handlers.Routers
 
             _lastWindowSize = newSize;
 
-            // 返回是否需要重新适配
+            // Return whether refitting is needed
             return shouldFit;
         }
 
         /// <summary>
-        /// 判断窗口尺寸变化时是否应该重新适配。
+        /// Determines whether refitting should occur on window size change and provides the target rectangle.
         /// </summary>
-        /// <param name="newSize">新的窗口尺寸。</param>
-        /// <param name="rectToFit">如果需要适配,返回要适配的矩形;否则返回 null。</param>
-        /// <returns>是否应该执行适配。</returns>
+        /// <param name="newSize">The new window size in pixels.</param>
+        /// <param name="rectToFit">
+        /// When this method returns <c>true</c>, contains the rectangle to fit; otherwise, <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if refitting should be performed; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// This is a convenience method that combines the window size change evaluation with
+        /// retrieval of the cached rectangle. It internally calls <see cref="OnWindowSizeChanged"/>
+        /// and returns the cached rectangle only if fitting is determined to be necessary.
+        /// </remarks>
         public bool ShouldRefitOnWindowSizeChange(PxSize newSize, out PxRect? rectToFit)
         {
             rectToFit = null;

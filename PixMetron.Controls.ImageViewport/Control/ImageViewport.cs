@@ -13,29 +13,32 @@ using PixMetron.Controls.ImageViewport.Runtime.Services;
 namespace PixMetron.Controls.ImageViewport
 {
     /// <summary>
-    /// 图像视口控件 - 仅负责核心基础设施和状态管理。
-    /// 业务逻辑应通过 Facade/Handlers/Surfaces 扩展。
+    /// Image viewport control - responsible only for core infrastructure and state management.
+    /// Business logic should be extended through Facade/Handlers/Surfaces.
     /// </summary>
     [TemplatePart(Name = PartHost, Type = typeof(LayeredSurfaceHost))]
     public sealed class ImageViewport : Control
     {
-        #region 常量
+        #region Constants
         internal const string PartHost = "PART_SurfaceHost";
 
-        // 保留：精度常量（用于内部计算）
+        // Precision constants for internal calculations
         const double ScalePrecision = 1e-9;
         const double DpiScalePrecision = 1e-6;
 
         /// <summary>
-        /// 平移距离的最小阈值（用于判断平移是否有效，单位：像素）。
+        /// Minimum threshold for pan distance to be considered valid (in pixels).
         /// </summary>
         const double PanThreshold = 0.01;
 
+        /// <summary>
+        /// Determines if two double values are close within the specified precision.
+        /// </summary>
         static bool AreClose(double v1, double v2, double precision)
             => Math.Abs(v1 - v2) < precision;
         #endregion
 
-        #region 私有字段（仅基础设施）
+        #region Private Fields (Infrastructure Only)
         LayeredSurfaceHost? _host;
         IDisposable? _dpiSubscription;
 
@@ -54,6 +57,9 @@ namespace PixMetron.Controls.ImageViewport
                 new FrameworkPropertyMetadata(typeof(ImageViewport)));
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageViewport"/> class.
+        /// </summary>
         public ImageViewport()
         {
             Focusable = true;
@@ -62,15 +68,21 @@ namespace PixMetron.Controls.ImageViewport
                 .AddHandler(this, nameof(Unloaded), OnControlUnloaded);
         }
 
-        #region 核心依赖属性
+        #region Core Dependency Properties
 
         #region Facade
+        /// <summary>
+        /// Gets or sets the viewport facade that provides surfaces, services, and input routing.
+        /// </summary>
         public IViewportFacade? Facade
         {
             get => (IViewportFacade?)GetValue(FacadeProperty);
             set => SetValue(FacadeProperty, value);
         }
 
+        /// <summary>
+        /// Identifies the <see cref="Facade"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty FacadeProperty =
             DependencyProperty.Register(nameof(Facade), typeof(IViewportFacade),
                 typeof(ImageViewport),
@@ -79,7 +91,7 @@ namespace PixMetron.Controls.ImageViewport
                     (d, _) => ((ImageViewport)d).Rebind()));
         #endregion
 
-        #region 只读状态属性
+        #region Read-Only State Properties
 
         #region ViewportMatrix
         static readonly DependencyPropertyKey ViewportMatrixPropertyKey =
@@ -88,9 +100,15 @@ namespace PixMetron.Controls.ImageViewport
                 new FrameworkPropertyMetadata(null,
                     FrameworkPropertyMetadataOptions.AffectsRender));
 
+        /// <summary>
+        /// Identifies the <see cref="ViewportMatrix"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty ViewportMatrixProperty =
             ViewportMatrixPropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the viewport transformation matrix that maps from image coordinates to window coordinates.
+        /// </summary>
         public MatrixTransform ViewportMatrix =>
             (MatrixTransform)GetValue(ViewportMatrixProperty);
         #endregion
@@ -100,9 +118,15 @@ namespace PixMetron.Controls.ImageViewport
                 typeof(PxRect), typeof(ImageViewport),
                 new FrameworkPropertyMetadata(new PxRect(0, 0, 0, 0)));
 
+        /// <summary>
+        /// Identifies the <see cref="ImageViewRect"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty ImageViewRectProperty =
             ImageViewRectPropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the viewport rectangle in image pixel coordinates.
+        /// </summary>
         public PxRect ImageViewRect => (PxRect)GetValue(ImageViewRectProperty);
 
         static readonly DependencyPropertyKey WindowPixelSizePropertyKey =
@@ -110,9 +134,15 @@ namespace PixMetron.Controls.ImageViewport
                 typeof(PxSize), typeof(ImageViewport),
                 new FrameworkPropertyMetadata(new PxSize(0, 0)));
 
+        /// <summary>
+        /// Identifies the <see cref="WindowPixelSize"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty WindowPixelSizeProperty =
             WindowPixelSizePropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the current window size in pixels.
+        /// </summary>
         public PxSize WindowPixelSize => (PxSize)GetValue(WindowPixelSizeProperty);
 
         static readonly DependencyPropertyKey ScalePropertyKey =
@@ -120,9 +150,15 @@ namespace PixMetron.Controls.ImageViewport
                 typeof(double), typeof(ImageViewport),
                 new FrameworkPropertyMetadata(1.0));
 
+        /// <summary>
+        /// Identifies the <see cref="Scale"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty ScaleProperty =
             ScalePropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the current zoom scale factor.
+        /// </summary>
         public double Scale => (double)GetValue(ScaleProperty);
 
         static readonly DependencyPropertyKey DpiScaleXPropertyKey =
@@ -130,9 +166,15 @@ namespace PixMetron.Controls.ImageViewport
                 typeof(double), typeof(ImageViewport),
                 new FrameworkPropertyMetadata(1.0));
 
+        /// <summary>
+        /// Identifies the <see cref="DpiScaleX"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty DpiScaleXProperty =
             DpiScaleXPropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the horizontal DPI scale factor.
+        /// </summary>
         public double DpiScaleX => (double)GetValue(DpiScaleXProperty);
 
         static readonly DependencyPropertyKey DpiScaleYPropertyKey =
@@ -140,15 +182,24 @@ namespace PixMetron.Controls.ImageViewport
                 typeof(double), typeof(ImageViewport),
                 new FrameworkPropertyMetadata(1.0));
 
+        /// <summary>
+        /// Identifies the <see cref="DpiScaleY"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty DpiScaleYProperty =
             DpiScaleYPropertyKey.DependencyProperty;
 
+        /// <summary>
+        /// Gets the vertical DPI scale factor.
+        /// </summary>
         public double DpiScaleY => (double)GetValue(DpiScaleYProperty);
         #endregion
 
         #endregion
 
-        #region 控件生命周期
+        #region Control Lifecycle
+        /// <summary>
+        /// Called when the template is applied. Retrieves the surface host and binds to the facade.
+        /// </summary>
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -157,15 +208,22 @@ namespace PixMetron.Controls.ImageViewport
             Rebind();
         }
 
+        /// <summary>
+        /// Handles render size changes and updates the viewport service accordingly.
+        /// </summary>
+        /// <param name="sizeInfo">Information about the size change.</param>
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
             _service?.SetWindowSize(new PxSize(
                 sizeInfo.NewSize.Width,
                 sizeInfo.NewSize.Height));
-            _host?.Invalidate();                // 同步刷新 Host，避免一帧滞后
+            _host?.Invalidate();                // Synchronously refresh host to avoid one-frame lag
         }
 
+        /// <summary>
+        /// Handles the control unloaded event and performs cleanup.
+        /// </summary>
         void OnControlUnloaded(object? sender, RoutedEventArgs e)
         {
             _dpiSubscription?.Dispose();
@@ -178,7 +236,10 @@ namespace PixMetron.Controls.ImageViewport
         }
         #endregion
 
-        #region 服务绑定
+        #region Service Binding
+        /// <summary>
+        /// Rebinds the control to the current facade and viewport service.
+        /// </summary>
         void Rebind()
         {
             if (_host is null) return;
@@ -204,10 +265,12 @@ namespace PixMetron.Controls.ImageViewport
         }
         #endregion
 
-        #region 底层 API（薄封装）
+        #region Low-Level API (Thin Wrappers)
         /// <summary>
-        /// 以窗口像素为锚点进行缩放。
+        /// Zooms at the specified window pixel position as the anchor point.
         /// </summary>
+        /// <param name="factor">The zoom factor to apply.</param>
+        /// <param name="windowPx">The anchor point in window pixel coordinates.</param>
         public void ZoomAtWindowPx(double factor, PxPoint windowPx)
         {
             if (factor <= 0 || _service is null) return;
@@ -215,21 +278,24 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 以图像像素为锚点进行缩放。
+        /// Zooms at the specified image pixel position as the anchor point.
+        /// Applies compensation panning to keep the anchor point stationary in window coordinates.
         /// </summary>
+        /// <param name="factor">The zoom factor to apply.</param>
+        /// <param name="imagePx">The anchor point in image pixel coordinates.</param>
         public void ZoomAtImagePx(double factor, PxPoint imagePx)
         {
             if (factor <= 0 || _service is null) return;
-            // 1. 缩放前，锚点在窗口中的位置
+            // 1. Position of anchor point in window before zoom
             var anchorWinPxBefore = ImageToWindow(imagePx);
 
-            // 2. 以该窗口位置为锚点缩放
+            // 2. Zoom at that window position
             ZoomAtWindowPx(factor, anchorWinPxBefore);
 
-            // 3. 缩放后，锚点在窗口中的新位置
+            // 3. Position of anchor point in window after zoom
             var anchorWinPxAfter = ImageToWindow(imagePx);
 
-            // 4. 做补偿平移（使用统一的平移阈值）
+            // 4. Apply compensation pan (using unified pan threshold)
             var dx = anchorWinPxBefore.X - anchorWinPxAfter.X;
             var dy = anchorWinPxBefore.Y - anchorWinPxAfter.Y;
             if (Math.Abs(dx) > PanThreshold || Math.Abs(dy) > PanThreshold)
@@ -239,20 +305,28 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 以窗口像素为单位进行平移。
+        /// Pans the viewport by the specified offset in window pixels.
         /// </summary>
+        /// <param name="dx">Horizontal pan offset in pixels.</param>
+        /// <param name="dy">Vertical pan offset in pixels.</param>
         public void PanWindowPx(double dx, double dy)
         {
             if (_service is null) return;
             _service.PanWindowPx(dx, dy);
         }
 
-        // 只读属性用于内部/Facade初始读取
+        /// <summary>
+        /// Gets the current viewport information, or an empty snapshot if no service is available.
+        /// Used internally and for Facade initial reads.
+        /// </summary>
+        /// <returns>The current viewport information.</returns>
         public ViewportInfo CurrentOrEmpty() => _service?.Current ?? new ViewportInfo();
 
         /// <summary>
-        /// 窗口像素→图像像素坐标。
+        /// Converts a point from window pixel coordinates to image pixel coordinates.
         /// </summary>
+        /// <param name="windowPx">The point in window coordinates.</param>
+        /// <returns>The corresponding point in image coordinates.</returns>
         public PxPoint WindowToImage(PxPoint windowPx)
         {
             if (_facade is null || _service is null) return new PxPoint();
@@ -263,8 +337,10 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 图像像素→窗口像素坐标。
+        /// Converts a point from image pixel coordinates to window pixel coordinates.
         /// </summary>
+        /// <param name="imagePx">The point in image coordinates.</param>
+        /// <returns>The corresponding point in window coordinates.</returns>
         public PxPoint ImageToWindow(PxPoint imagePx)
         {
             if (_facade is null || _service is null) return new PxPoint();
@@ -274,8 +350,10 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 窗口矩形→图像像素矩形。
+        /// Converts a rectangle from window pixel coordinates to image pixel coordinates.
         /// </summary>
+        /// <param name="windowRect">The rectangle in window coordinates.</param>
+        /// <returns>The corresponding rectangle in image coordinates.</returns>
         public PxRect WindowRectToImageRect(PxRect windowRect)
         {
             if (_facade is null || _service is null) return new PxRect();
@@ -286,8 +364,10 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 图像像素矩形→窗口矩形。
+        /// Converts a rectangle from image pixel coordinates to window pixel coordinates.
         /// </summary>
+        /// <param name="imageRect">The rectangle in image coordinates.</param>
+        /// <returns>The corresponding rectangle in window coordinates.</returns>
         public PxRect ImageRectToWindowRect(PxRect imageRect)
         {
             if (_facade is null || _service is null) return new PxRect();
@@ -298,13 +378,14 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 将指定的图像矩形适配到视口。
+        /// Fits the specified image rectangle to the viewport by adjusting scale and position.
         /// </summary>
+        /// <param name="imageRect">The image rectangle to fit.</param>
         public void FitImageRect(PxRect imageRect)
         {
             if (_service is null) return;
 
-            // 验证矩形有效性
+            // Validate rectangle
             if (double.IsNaN(imageRect.X) || double.IsNaN(imageRect.Y)
                 || double.IsNaN(imageRect.Width) || double.IsNaN(imageRect.Height)
                 || imageRect.Width <= 0 || imageRect.Height <= 0)
@@ -315,6 +396,9 @@ namespace PixMetron.Controls.ImageViewport
             _service.FitImageRect(imageRect);
         }
 
+        /// <summary>
+        /// Invalidates the viewport to trigger a re-render.
+        /// </summary>
         public void InvilidateViewport()
         {
             _host?.Invalidate();
@@ -322,32 +406,52 @@ namespace PixMetron.Controls.ImageViewport
 
         #endregion
 
-        #region 公开事件
+        #region Public Events
 
-        #region 事件说明
-        /// <summary>
-        /// 控件的这些事件是必要的，从 IViewportObservable 拿到视口变化事件后，
-        /// 以便外部订阅视口状态变化能够直接订阅 ImageViewport 的事件，而不需要额外订阅 Facade.Service 的事件。
-        /// 但是，ScaleChanged 、PanChanged 和 DpiScaleChanged 等事件是否需要保留，仍有待商榷。
-        /// 这些事件不应该被控件本身使用，以避免循环调用。
-        /// </summary>
+        #region Event Documentation
+        // <summary>
+        // These control events are necessary. After receiving viewport change events from IViewportObservable,
+        // external subscribers can directly subscribe to ImageViewport events without separately subscribing to Facade.Service events.
+        // However, whether ScaleChanged, PanChanged, and DpiScaleChanged events should be retained is still under consideration.
+        // These events should not be used by the control itself to avoid circular invocations.
+        // </summary>
         #endregion
 
-        /// 视口变化事件，注意，如果业务要实现图像自动适配视口功能，不能订阅此事件以避免循环调用。
+        /// <summary>
+        /// Occurs when the viewport state changes. Note: If implementing auto-fit functionality, do not subscribe to this event to avoid circular calls.
+        /// </summary>
         public event EventHandler<ViewportInfo>? ViewportChanged;
 
         /// <summary>
-        /// ·窗口和 DPI 变化事件。如果业务要实现图像自动适配视口功能，可以订阅这些事件。
+        /// Occurs when the window size changes. Suitable for implementing auto-fit functionality.
         /// </summary>
         public event EventHandler<WindowPixelSizeChangedEventArgs>? WindowSizeChanged;
+
+        /// <summary>
+        /// Occurs when the DPI scale changes. Suitable for implementing auto-fit functionality.
+        /// </summary>
         public event EventHandler<DpiScaleChangedEventArgs>? DpiScaleChanged;
 
+        /// <summary>
+        /// Occurs when the zoom scale changes.
+        /// </summary>
         public event EventHandler<ScaleChangedEventArgs>? ScaleChanged;
+
+        /// <summary>
+        /// Occurs when the viewport is panned.
+        /// </summary>
         public event EventHandler<PanChangedEventArgs>? PanChanged;
+
+        /// <summary>
+        /// Occurs when a context menu is requested (typically right-click).
+        /// </summary>
         public event EventHandler<PointerEvent>? ContextMenuRequested;
         #endregion
 
-        #region 状态同步
+        #region State Synchronization
+        /// <summary>
+        /// Handles viewport change notifications from the service, marshalling to the UI thread if necessary.
+        /// </summary>
         void OnViewportChangedInternal(object? sender, ViewportInfo e)
         {
             if (!Dispatcher.CheckAccess())
@@ -358,6 +462,9 @@ namespace PixMetron.Controls.ImageViewport
             ApplyViewportInfo(e);
         }
 
+        /// <summary>
+        /// Applies viewport information to the control's dependency properties and raises change events.
+        /// </summary>
         void ApplyViewportInfo(ViewportInfo e)
         {
             var oldScale = Scale;
@@ -376,7 +483,7 @@ namespace PixMetron.Controls.ImageViewport
             var tl = e.ViewportRectInImage.TopLeft;
             _viewportMatrix.Matrix = new Matrix(s, 0, 0, s, -tl.X * s, -tl.Y * s);
 
-            // 关键修复:触发渲染刷新
+            // Critical fix: Trigger rendering refresh
             _host?.Invalidate();
 
             if (!AreClose(oldScale, e.Scale, ScalePrecision))
@@ -405,12 +512,18 @@ namespace PixMetron.Controls.ImageViewport
         }
         #endregion
 
-        #region 输入路由（简化）
+        #region Input Routing
+        /// <summary>
+        /// Gets the effective input router from the facade, or a no-op router if none is available.
+        /// </summary>
         IInputRouter GetEffectiveRouter()
         {
             return _facade?.InputRouter ?? (_defaultRouter ??= NoopRouter);
         }
 
+        /// <summary>
+        /// A no-operation input router that handles no events.
+        /// </summary>
         private sealed class NoopInputRouter : IInputRouter
         {
             public bool OnWheel(object s, PointerEvent p) => false;
@@ -420,8 +533,11 @@ namespace PixMetron.Controls.ImageViewport
         }
         #endregion
 
-        #region 输入处理（简化）
+        #region Input Handling
 
+        /// <summary>
+        /// Builds a pointer event from mouse event arguments and position.
+        /// </summary>
         PointerEvent BuildPointerEvent(MouseEventArgs e, Point winPt, double wheelDelta = 0, int clickCount = 0)
         {
             if (_service is null) return new PointerEvent();
@@ -436,7 +552,7 @@ namespace PixMetron.Controls.ImageViewport
                 pxImg = tf.WindowToImage(pxWin);
             } else
             {
-                // 兜底：仍可手算（理论上不会走到这里）
+                // Fallback: manual calculation (theoretically should not reach here)
                 var view = _service.Snapshot();
                 pxImg = new PxPoint(view.ViewportRectInImage.X + pxWin.X / view.Scale,
                                     view.ViewportRectInImage.Y + pxWin.Y / view.Scale);
@@ -464,6 +580,9 @@ namespace PixMetron.Controls.ImageViewport
             };
         }
 
+        /// <summary>
+        /// Handles the mouse wheel event.
+        /// </summary>
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
@@ -479,6 +598,9 @@ namespace PixMetron.Controls.ImageViewport
             }
         }
 
+        /// <summary>
+        /// Handles the mouse move event.
+        /// </summary>
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
@@ -495,9 +617,9 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 鼠标左键按下事件处理。
+        /// Handles the left mouse button down event.
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
@@ -522,9 +644,9 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 鼠标左键释放事件处理。
+        /// Handles the left mouse button up event.
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonUp(e);
@@ -546,9 +668,9 @@ namespace PixMetron.Controls.ImageViewport
             }
         }
 
-        #region 右键特殊处理（右键单击弹出菜单）
+        #region Right-Click Special Handling (Context Menu)
 
-        const double ContextClickMoveThreshold = 4.0;   // 像素
+        const double ContextClickMoveThreshold = 4.0;   // pixels
         static readonly TimeSpan ContextClickTimeThreshold = TimeSpan.FromMilliseconds(600);
 
         Point _rightDownPos;
@@ -556,9 +678,9 @@ namespace PixMetron.Controls.ImageViewport
         bool _rightDown;
 
         /// <summary>
-        /// 鼠标右键按下事件处理。
+        /// Handles the right mouse button down event.
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
@@ -576,9 +698,9 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 鼠标右键释放事件处理。
+        /// Handles the right mouse button up event and context menu display logic.
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonUp(e);
@@ -589,10 +711,10 @@ namespace PixMetron.Controls.ImageViewport
             var router = GetEffectiveRouter();
             bool handled = router.OnRightUp(this, pe) || router.OnMouseUp(this, pe);
 
-            // 若路由器声明禁止菜单，则直接跳过菜单逻辑
+            // If router declares context menu suppression, skip menu logic
             if (!handled && !pe.SuppressContextMenu)
             {
-                // 保留"点击阈值"判断以区分点击/拖拽
+                // Retain "click threshold" check to distinguish click from drag
                 var moved = p - _rightDownPos;
                 var movedLen = Math.Sqrt(moved.X * moved.X + moved.Y * moved.Y);
                 var dur = DateTime.UtcNow - _rightDownTime;
@@ -624,9 +746,9 @@ namespace PixMetron.Controls.ImageViewport
         #endregion
 
         /// <summary>
-        /// 鼠标按下事件处理（支持三键）。
+        /// Handles the general mouse button down event (supports all three buttons).
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
@@ -644,9 +766,9 @@ namespace PixMetron.Controls.ImageViewport
         }
 
         /// <summary>
-        /// 鼠标释放事件处理（支持三键）。
+        /// Handles the general mouse button up event (supports all three buttons).
         /// </summary>
-        /// <param name="e">事件参数。</param>
+        /// <param name="e">The event data.</param>
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
             base.OnMouseUp(e);

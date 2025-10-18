@@ -1,5 +1,5 @@
-
 using PixMetron.Controls.ImageViewport.Contracts.Abstractions;
+using PixMetron.Controls.ImageViewport.Contracts.Facade;
 using PixMetron.Controls.ImageViewport.Contracts.Input;
 using PixMetron.Controls.ImageViewport.Contracts.Surfaces;
 using PixMetron.Controls.ImageViewport.Handlers.Composite;
@@ -9,25 +9,62 @@ using PixMetron.Controls.ImageViewport.Runtime.Transforms;
 namespace PixMetron.Controls.ImageViewport.Facade
 {
     /// <summary>
-    /// 通用、可扩展的 Facade:自由管理 Surface 列表与输入路由链。
-    /// - 高内聚低耦合:控件仅依赖 IViewportFacade;
-    /// - 可插拔:Part(Renderer + 可选 Router + ZIndex + Group + Visible + ReceivesInput)
-    /// - Transforms:支持外部自定义工厂 + 懒创建 + 版本缓存
+    /// A general-purpose, extensible facade for managing surface lists and input routing chains.
+    /// Features:
+    /// - High cohesion, low coupling: controls only depend on <see cref="IViewportFacade"/>.
+    /// - Pluggable architecture: each part includes renderer, optional router, Z-index, group, visibility, and input reception flags.
+    /// - Transform support: custom factory injection, lazy creation, and version-based caching.
     /// </summary>
     public sealed class ImageViewportFacade : IEditableViewportFacade, IDisposable
     {
-        #region Part 定义
+        #region Part Definition
+        /// <summary>
+        /// Represents an internal part containing a surface renderer and associated metadata.
+        /// </summary>
         private sealed class Part
         {
+            /// <summary>
+            /// Gets the unique identifier for this part.
+            /// </summary>
             public string Key { get; }
+
+            /// <summary>
+            /// Gets or sets the group name for batch operations.
+            /// </summary>
             public string? Group { get; set; }
+
+            /// <summary>
+            /// Gets or sets the Z-index for rendering order (higher values render on top).
+            /// </summary>
             public int ZIndex { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether this part is visible.
+            /// </summary>
             public bool Visible { get; set; } = true;
+
+            /// <summary>
+            /// Gets or sets a value indicating whether this part receives input events.
+            /// </summary>
             public bool ReceivesInput { get; set; } = true;
 
+            /// <summary>
+            /// Gets or sets the surface renderer for this part.
+            /// </summary>
             public ISurfaceRenderer Renderer { get; set; }
+
+            /// <summary>
+            /// Gets or sets the optional input router for this part.
+            /// </summary>
             public IInputRouter? Router { get; set; }
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Part"/> class.
+            /// </summary>
+            /// <param name="key">The unique identifier.</param>
+            /// <param name="renderer">The surface renderer.</param>
+            /// <param name="router">The optional input router.</param>
+            /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> or <paramref name="renderer"/> is null.</exception>
             public Part(string key, ISurfaceRenderer renderer, IInputRouter? router = null)
             {
                 Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -37,7 +74,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
         }
         #endregion
 
-        // ---------- 状态 ----------
+        // ---------- State ----------
         private readonly List<Part> _parts = new();
         private readonly List<ISurfaceRenderer> _visibleCache = new();
         private IInputRouter? _composite;
@@ -45,14 +82,26 @@ namespace PixMetron.Controls.ImageViewport.Facade
         private bool _dirtyInput = true;
         private int _batchDepth = 0;
 
-        // ---------- 输入优先级(可选接口) ----------
+        // ---------- Input Priority (optional interface) ----------
+        /// <summary>
+        /// Gets the priority of an input router if it implements <see cref="IInputPrioritizable"/>.
+        /// </summary>
+        /// <param name="r">The input router.</param>
+        /// <returns>The priority value, or 0 if not prioritizable.</returns>
         private static int GetPriority(IInputRouter r) => (r is IInputPrioritizable p) ? p.Priority : 0;
 
-        // ---------- Transforms 工厂与缓存 ----------
+        // ---------- Transforms Factory & Cache ----------
         private readonly Func<ViewportInfo, IViewportTransforms> _transformsFactory;
         private ulong _lastVersion = ulong.MaxValue;
         private IViewportTransforms? _cachedTransforms;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageViewportFacade"/> class.
+        /// </summary>
+        /// <param name="service">The viewport service. If null, a built-in service is used.</param>
+        /// <param name="transformsFactory">The factory for creating viewport transforms. If null, a built-in factory is used.</param>
+        /// <param name="contextMenu">The context menu provider.</param>
+        /// <param name="initialRouter">The initial input router.</param>
         public ImageViewportFacade(
             IViewportService? service = null,
             Func<ViewportInfo, IViewportTransforms>? transformsFactory = null,
@@ -64,16 +113,24 @@ namespace PixMetron.Controls.ImageViewport.Facade
             ContextMenu = contextMenu;
             _composite = initialRouter;
 
-            // 初始化 current & 缓存
+            // Initialize current & cache
             UpdateCache(Service.Current);
         }
 
         #region IViewportFacade
+        /// <inheritdoc/>
         public IEnumerable<ISurfaceRenderer> Surfaces => GetVisibleSurfaces();
+
+        /// <inheritdoc/>
         public IViewportService Service { get; }
+
+        /// <inheritdoc/>
         public IInputRouter? InputRouter => GetCompositeRouter();
+
+        /// <inheritdoc/>
         public IContextMenuProvider? ContextMenu { get; private set; }
 
+        /// <inheritdoc/>
         public IViewportTransforms GetTransforms(in ViewportInfo info)
         {
             if (_cachedTransforms is null || _lastVersion != info.Version)
@@ -84,21 +141,31 @@ namespace PixMetron.Controls.ImageViewport.Facade
         }
         #endregion
 
-        #region IEditableViewportFacade —— Surface 列表(面向第三方)
-        // 外界看到的是"只包含可见项、有序"的可变集合视图。
-        // 简化处理:返回一个投影集合(修改通过下方 API 完成),避免直接篡改内部 _parts。
+        #region IEditableViewportFacade — Surface List (for third-party use)
+        /// <inheritdoc/>
         public IList<ISurfaceRenderer> SurfacesMutable => GetVisibleMutableView();
 
+        /// <summary>
+        /// Gets a mutable view of visible surfaces.
+        /// </summary>
+        /// <returns>A mutable adapter for the visible surfaces collection.</returns>
         private IList<ISurfaceRenderer> GetVisibleMutableView()
         {
             RebuildCachesIfDirty();
-            // 提供一个可编辑适配器:对它的修改转发为下方 API 调用
             return new MutableSurfaceAdapter(this);
         }
 
+        /// <summary>
+        /// Adapter that provides a mutable view of the visible surfaces collection.
+        /// </summary>
         private sealed class MutableSurfaceAdapter : IList<ISurfaceRenderer>
         {
             private readonly ImageViewportFacade _f;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="MutableSurfaceAdapter"/> class.
+            /// </summary>
+            /// <param name="f">The parent facade.</param>
             public MutableSurfaceAdapter(ImageViewportFacade f) => _f = f;
 
             private List<ISurfaceRenderer> Snapshot => _f.GetVisibleSurfaces().ToList();
@@ -119,6 +186,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
+        /// <inheritdoc/>
         public bool AddSurface(ISurfaceRenderer surface)
         {
             if (surface is null) return false;
@@ -128,20 +196,21 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <inheritdoc/>
         public bool InsertSurface(int index, ISurfaceRenderer surface)
         {
             if (surface is null) return false;
-            // 将可见视图的 index 映射回内部 ZIndex:简单策略=直接赋值 index,再整体稳定排序
             var ordered = _parts.OrderBy(p => p.ZIndex).ToList();
             var newPart = new Part(Guid.NewGuid().ToString("N"), surface) { ZIndex = index };
             ordered.Insert(Math.Clamp(index, 0, ordered.Count), newPart);
-            // 重新编号,保证 ZIndex 连续
+            // Renumber ZIndex to ensure continuity
             for (int i = 0; i < ordered.Count; i++) ordered[i].ZIndex = i;
             _parts.Clear(); _parts.AddRange(ordered);
             MarkDirty();
             return true;
         }
 
+        /// <inheritdoc/>
         public bool RemoveSurface(ISurfaceRenderer surface)
         {
             var idx = _parts.FindIndex(p => ReferenceEquals(p.Renderer, surface));
@@ -151,6 +220,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <inheritdoc/>
         public bool SetSurfaceVisible(ISurfaceRenderer surface, bool visible)
         {
             var p = _parts.FirstOrDefault(x => ReferenceEquals(x.Renderer, surface));
@@ -161,16 +231,17 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <inheritdoc/>
         public bool SetSurfaceGroup(ISurfaceRenderer surface, string? group)
         {
             var p = _parts.FirstOrDefault(x => ReferenceEquals(x.Renderer, surface));
             if (p is null) return false;
             if (p.Group == group) return true;
             p.Group = group;
-            // 分组变更不影响渲染顺序或输入,无需 MarkDirty
             return true;
         }
 
+        /// <inheritdoc/>
         public bool BringToFront(ISurfaceRenderer surface)
         {
             var p = _parts.FirstOrDefault(x => ReferenceEquals(x.Renderer, surface));
@@ -180,6 +251,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <inheritdoc/>
         public bool SendToBack(ISurfaceRenderer surface)
         {
             var p = _parts.FirstOrDefault(x => ReferenceEquals(x.Renderer, surface));
@@ -189,6 +261,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <inheritdoc/>
         public bool MoveTo(ISurfaceRenderer surface, int index)
         {
             var p = _parts.FirstOrDefault(x => ReferenceEquals(x.Renderer, surface));
@@ -204,14 +277,17 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return true;
         }
 
+        /// <summary>
+        /// Replaces a renderer at the specified visible index.
+        /// </summary>
+        /// <param name="index">The visible index.</param>
+        /// <param name="newRenderer">The new renderer.</param>
         private void MoveReplace(int index, ISurfaceRenderer newRenderer)
         {
-            // 将可见视图 index 映射回真实 Part,并替换 Renderer(通过移除旧的、插入新的方式)
             var ordered = _parts.Where(p => p.Visible).OrderBy(p => p.ZIndex).ToList();
             if (index < 0 || index >= ordered.Count) return;
 
             var target = ordered[index];
-            // 找回原 Part
             var real = _parts.First(p => ReferenceEquals(p, target));
             var z = real.ZIndex;
             var group = real.Group;
@@ -219,7 +295,6 @@ namespace PixMetron.Controls.ImageViewport.Facade
             var receivesInput = real.ReceivesInput;
             var router = real.Router;
 
-            // 在相同位置插入新 renderer 并删除旧的
             _parts.Remove(real);
             _parts.Add(new Part(Guid.NewGuid().ToString("N"), newRenderer)
             {
@@ -232,6 +307,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             MarkDirty();
         }
 
+        /// <inheritdoc/>
         public int HideGroup(string group)
         {
             int n = 0;
@@ -243,6 +319,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return n;
         }
 
+        /// <inheritdoc/>
         public int ShowGroup(string group)
         {
             int n = 0;
@@ -254,6 +331,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return n;
         }
 
+        /// <inheritdoc/>
         public int ClearGroup(string group)
         {
             int n = _parts.RemoveAll(p => p.Group == group);
@@ -261,12 +339,27 @@ namespace PixMetron.Controls.ImageViewport.Facade
             return n;
         }
 
+        /// <summary>
+        /// Begins a batch update operation that defers cache rebuilding until disposed.
+        /// </summary>
+        /// <returns>A disposable batch update token.</returns>
         public IDisposable BatchUpdate() => new Batch(this);
+
+        /// <summary>
+        /// Represents a batch update scope.
+        /// </summary>
         private sealed class Batch : IDisposable
         {
             private readonly ImageViewportFacade _f;
             private bool _disposed;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Batch"/> class.
+            /// </summary>
+            /// <param name="f">The parent facade.</param>
             public Batch(ImageViewportFacade f) { _f = f; _f._batchDepth++; }
+
+            /// <inheritdoc/>
             public void Dispose()
             {
                 if (_disposed) return;
@@ -276,13 +369,15 @@ namespace PixMetron.Controls.ImageViewport.Facade
         }
         #endregion
 
-        #region IEditableViewportFacade —— 输入路由 & 菜单
+        #region IEditableViewportFacade — Input Routing & Menu
+        /// <inheritdoc/>
         public void SetInputRouter(IInputRouter? router)
         {
             _composite = router;
-            _dirtyInput = false; // 替换整体时,不需要重建
+            _dirtyInput = false;
         }
 
+        /// <inheritdoc/>
         public void PrependInputRouter(IInputRouter router)
         {
             var current = GetCompositeRouter();
@@ -291,6 +386,7 @@ namespace PixMetron.Controls.ImageViewport.Facade
                 : new CompositeInputRouter(new[] { router, current });
         }
 
+        /// <inheritdoc/>
         public void AppendInputRouter(IInputRouter router)
         {
             var current = GetCompositeRouter();
@@ -299,22 +395,34 @@ namespace PixMetron.Controls.ImageViewport.Facade
                 : new CompositeInputRouter(new[] { current, router });
         }
 
+        /// <inheritdoc/>
         public void SetContextMenu(IContextMenuProvider? provider) => ContextMenu = provider;
         #endregion
 
-        #region 内部:可见 Surface 列表 & 输入聚合
+        #region Internal: Visible Surface List & Input Aggregation
+        /// <summary>
+        /// Gets the collection of visible surfaces in Z-order.
+        /// </summary>
+        /// <returns>An enumerable of visible surface renderers.</returns>
         private IEnumerable<ISurfaceRenderer> GetVisibleSurfaces()
         {
             RebuildCachesIfDirty();
             return _visibleCache;
         }
 
+        /// <summary>
+        /// Gets the composite input router.
+        /// </summary>
+        /// <returns>The composite input router, or null if none exists.</returns>
         private IInputRouter? GetCompositeRouter()
         {
             RebuildCachesIfDirty();
             return _composite;
         }
 
+        /// <summary>
+        /// Rebuilds internal caches if they are marked as dirty and not in a batch operation.
+        /// </summary>
         private void RebuildCachesIfDirty()
         {
             if (_batchDepth > 0) return;
@@ -337,12 +445,12 @@ namespace PixMetron.Controls.ImageViewport.Facade
                 routers.Sort((a, b) =>
                 {
                     int c = b.pri.CompareTo(a.pri);
-                    return (c != 0) ? c : b.z.CompareTo(a.z); // 优先级高在前;同优先级 Z 高在前
+                    return (c != 0) ? c : b.z.CompareTo(a.z); // Higher priority first; same priority → higher Z first
                 });
 
                 _composite = routers.Count switch
                 {
-                    0 => _composite, // 保持外部指定的 router(若有)
+                    0 => _composite, // Keep externally specified router (if any)
                     1 => (_composite != null)
                         ? new CompositeInputRouter(new[] { _composite, routers[0].router })
                         : routers[0].router,
@@ -355,6 +463,9 @@ namespace PixMetron.Controls.ImageViewport.Facade
             }
         }
 
+        /// <summary>
+        /// Marks the caches as dirty, requiring a rebuild.
+        /// </summary>
         private void MarkDirty()
         {
             _dirtySurfaces = true;
@@ -363,16 +474,20 @@ namespace PixMetron.Controls.ImageViewport.Facade
         }
         #endregion
 
-        #region 缓存
+        #region Cache
+        /// <summary>
+        /// Updates the cached transforms for the specified viewport information.
+        /// </summary>
+        /// <param name="info">The viewport information.</param>
         private void UpdateCache(ViewportInfo info)
         {
-            // 按需创建 + 版本缓存;工厂可由上层注入(非强制 BuiltIn)
             _cachedTransforms = _transformsFactory(info);
             _lastVersion = info.Version;
         }
         #endregion
 
         #region IDisposable
+        /// <inheritdoc/>
         public void Dispose()
         {
             _parts.Clear();
