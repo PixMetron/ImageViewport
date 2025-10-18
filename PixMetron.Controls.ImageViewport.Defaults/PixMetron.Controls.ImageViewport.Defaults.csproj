@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<AssemblyName>PixMetron.Controls.ImageViewport.Defaults</AssemblyName>
+		<RootNamespace>PixMetron.Controls.ImageViewport.Defaults</RootNamespace>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\PixMetron.Controls.ImageViewport.Handlers\PixMetron.Controls.ImageViewport.Handlers.csproj" />
+		<ProjectReference Include="..\PixMetron.Controls.ImageViewport.Surfaces\PixMetron.Controls.ImageViewport.Surfaces.csproj" />
+		<ProjectReference Include="..\PixMetron.Controls.ImageViewport\PixMetron.Controls.ImageViewport.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\demo_checker.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\demo_checker.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PixMetron.Controls.ImageViewport\PixMetron.Controls.ImageViewport.csproj" />
+    <ProjectReference Include="..\PixMetron.Controls.ImageViewport.Handlers\PixMetron.Controls.ImageViewport.Handlers.csproj" />
+    <ProjectReference Include="..\PixMetron.Controls.ImageViewport.Surfaces\PixMetron.Controls.ImageViewport.Surfaces.csproj" />
+    <ProjectReference Include="..\PixMetron.Controls.ImageViewport.Facade\PixMetron.Controls.ImageViewport.Facade.csproj" />
+  </ItemGroup>
+
+</Project>

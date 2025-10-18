@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>PixMetron.Controls.ImageViewport.Surfaces</AssemblyName>
+    <RootNamespace>PixMetron.Controls.ImageViewport.Surfaces</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PixMetron.Controls.ImageViewport\PixMetron.Controls.ImageViewport.csproj" />
+  </ItemGroup>
+</Project>

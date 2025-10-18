@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.Controls.ImageViewport", "PixMetron.Controls.ImageViewport\PixMetron.Controls.ImageViewport.csproj", "{CDAC3014-CC49-45E2-AD5C-557E73BA6F12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.Controls.ImageViewport.Handlers", "PixMetron.Controls.ImageViewport.Handlers\PixMetron.Controls.ImageViewport.Handlers.csproj", "{906A263A-96E5-B1A9-C55A-CD35FC798DCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.Controls.ImageViewport.Surfaces", "PixMetron.Controls.ImageViewport.Surfaces\PixMetron.Controls.ImageViewport.Surfaces.csproj", "{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.Controls.ImageViewport.Defaults", "PixMetron.Controls.ImageViewport.Defaults\PixMetron.Controls.ImageViewport.Defaults.csproj", "{C5EB0FD3-2DAE-49EA-A934-06199E9DA034}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.Controls.ImageViewport.Facade", "PixMetron.Controls.ImageViewport.Facade\PixMetron.Controls.ImageViewport.Facade.csproj", "{D2061325-D5F9-4E43-9798-7CF664530735}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixMetron.ImageViewport.DemoApp", "PixMetron.ImageViewport.DemoApp\PixMetron.ImageViewport.DemoApp.csproj", "{C4B9295B-A646-CD5C-4862-284BF31D23CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDAC3014-CC49-45E2-AD5C-557E73BA6F12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDAC3014-CC49-45E2-AD5C-557E73BA6F12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDAC3014-CC49-45E2-AD5C-557E73BA6F12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDAC3014-CC49-45E2-AD5C-557E73BA6F12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{906A263A-96E5-B1A9-C55A-CD35FC798DCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{906A263A-96E5-B1A9-C55A-CD35FC798DCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{906A263A-96E5-B1A9-C55A-CD35FC798DCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{906A263A-96E5-B1A9-C55A-CD35FC798DCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7349EEBD-7DBB-6890-6D5D-D5AF034D2BD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5EB0FD3-2DAE-49EA-A934-06199E9DA034}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5EB0FD3-2DAE-49EA-A934-06199E9DA034}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5EB0FD3-2DAE-49EA-A934-06199E9DA034}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5EB0FD3-2DAE-49EA-A934-06199E9DA034}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2061325-D5F9-4E43-9798-7CF664530735}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2061325-D5F9-4E43-9798-7CF664530735}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2061325-D5F9-4E43-9798-7CF664530735}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2061325-D5F9-4E43-9798-7CF664530735}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4B9295B-A646-CD5C-4862-284BF31D23CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4B9295B-A646-CD5C-4862-284BF31D23CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4B9295B-A646-CD5C-4862-284BF31D23CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4B9295B-A646-CD5C-4862-284BF31D23CD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {69A4F4C0-0EBC-4FAD-ABBE-50DC0F6622BF}
+	EndGlobalSection
+EndGlobal
