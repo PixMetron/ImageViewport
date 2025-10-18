@@ -25,7 +25,7 @@ A high-performance, extensible WPF image viewport control with layered surface r
 Install via NuGet Package Manager:
 
 ```bash
-Install-Package PixMetron.Controls.ImageViewport
+dotnet add package PixMetron.Controls.ImageViewport.Defaults
 ```
 
 Or via Package Manager Console:
